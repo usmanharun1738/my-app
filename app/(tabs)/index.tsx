@@ -74,15 +74,16 @@ export default function HomeScreen() {
           <ThemedText type="defaultSemiBold">app-example</ThemedText>.
         </ThemedText>
       </ThemedView>
+
         <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
+        <ThemedText type="subtitle">Step 3: This is all new to me</ThemedText>
         <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
+          {`This is a text string, this is a string of randon texts, it does not make sense yet but will at the end of the day, it is scrollable this is what important `}
+
         </ThemedText>
+
+        <ThemedText>random text element</ThemedText>
+        <ThemedText type='defaultSemiBold' >"default-Semi-Bold"</ThemedText>
       </ThemedView>
 
     </ParallaxScrollView>
