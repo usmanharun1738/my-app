@@ -12,6 +12,33 @@ const getApiUrl = (path: string): string => {
   return `${normalizedBase}${path}`;
 };
 
+const buildHttpError = async (
+  response: Response,
+  label: string,
+  url: string
+) => {
+  const rawText = await response.text();
+
+  let serverMessage = "";
+  if (rawText) {
+    try {
+      const parsed = JSON.parse(rawText);
+      serverMessage = parsed?.message || parsed?.error || rawText;
+    } catch {
+      serverMessage = rawText;
+    }
+  }
+
+  const statusText = response.statusText || "Unknown status";
+  const details = serverMessage
+    ? ` - ${String(serverMessage).slice(0, 200)}`
+    : "";
+
+  return new Error(
+    `${label}: HTTP ${response.status} (${statusText}) [${url}]${details}`
+  );
+};
+
 export const fetchMovies = async ({
   query,
 }: {
@@ -30,7 +57,7 @@ export const fetchMovies = async ({
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch movies: ${response.statusText}`);
+      throw await buildHttpError(response, "Failed to fetch movies", url);
     }
 
     const payload = await response.json();
@@ -44,8 +71,10 @@ export const fetchMovies = async ({
 export const fetchMovieDetails = async (
   movieId: string
 ): Promise<MovieDetails> => {
+  const url = getApiUrl(`/api/movies/${movieId}`);
+
   try {
-    const response = await fetch(getApiUrl(`/api/movies/${movieId}`), {
+    const response = await fetch(url, {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -53,7 +82,11 @@ export const fetchMovieDetails = async (
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch movie details: ${response.statusText}`);
+      throw await buildHttpError(
+        response,
+        "Failed to fetch movie details",
+        url
+      );
     }
 
     const payload = await response.json();

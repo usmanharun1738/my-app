@@ -12,6 +12,33 @@ const getApiUrl = (path: string) => {
   return `${normalizedBase}${path}`;
 };
 
+const buildHttpError = async (
+  response: Response,
+  label: string,
+  url: string
+) => {
+  const rawText = await response.text();
+
+  let serverMessage = "";
+  if (rawText) {
+    try {
+      const parsed = JSON.parse(rawText);
+      serverMessage = parsed?.message || parsed?.error || rawText;
+    } catch {
+      serverMessage = rawText;
+    }
+  }
+
+  const statusText = response.statusText || "Unknown status";
+  const details = serverMessage
+    ? ` - ${String(serverMessage).slice(0, 200)}`
+    : "";
+
+  return new Error(
+    `${label}: HTTP ${response.status} (${statusText}) [${url}]${details}`
+  );
+};
+
 export const updateSearchCount = async (query: string, movie: Movie) => {
   try {
     await fetch(getApiUrl("/api/analytics/search"), {
@@ -34,11 +61,11 @@ export const updateSearchCount = async (query: string, movie: Movie) => {
   }
 };
 
-export const getTrendingMovies = async (): Promise<
-  TrendingMovie[] | undefined
-> => {
+export const getTrendingMovies = async (): Promise<TrendingMovie[]> => {
+  const url = getApiUrl("/api/analytics/trending?limit=5");
+
   try {
-    const response = await fetch(getApiUrl("/api/analytics/trending?limit=5"), {
+    const response = await fetch(url, {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -46,7 +73,7 @@ export const getTrendingMovies = async (): Promise<
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch trending movies: ${response.statusText}`);
+      throw await buildHttpError(response, "Failed to fetch trending movies", url);
     }
 
     const payload = await response.json();
@@ -62,6 +89,6 @@ export const getTrendingMovies = async (): Promise<
     return [];
   } catch (error) {
     console.error("Error fetching trending movies:", error);
-    return undefined;
+    return [];
   }
 };

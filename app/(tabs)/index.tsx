@@ -1,4 +1,3 @@
-import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { useCallback } from "react";
 import {
@@ -44,13 +43,6 @@ const Index = () => {
 
   const trendingList = Array.isArray(trendingMovies) ? trendingMovies : [];
   const latestMovies = Array.isArray(movies) ? movies : [];
-
-  useFocusEffect(
-    useCallback(() => {
-      refetchTrending();
-      refetchMovies();
-    }, [refetchTrending, refetchMovies])
-  );
 
   return (
     <View className="flex-1 bg-primary">

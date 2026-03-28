@@ -1,14 +1,14 @@
-import { useState, useEffect } from "react";
-import { View, Text, ActivityIndicator, FlatList, Image } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, FlatList, Image, Text, View } from "react-native";
 
-import { images } from "@/constants/images";
 import { icons } from "@/constants/icons";
+import { images } from "@/constants/images";
 
 import { fetchMovies } from "@/services/api";
 import { updateSearchCount } from "@/services/backend";
 
-import SearchBar from "@/components/SearchBar";
 import MovieDisplayCard from "@/components/MovieCard";
+import SearchBar from "@/components/SearchBar";
 
 const Search = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -36,7 +36,7 @@ const Search = () => {
     const runSearch = async () => {
       const normalizedQuery = debouncedQuery.trim();
 
-      if (!normalizedQuery) {
+      if (!normalizedQuery || normalizedQuery.length < 2) {
         setMovies([]);
         setError(null);
         setLoading(false);
@@ -172,7 +172,9 @@ const Search = () => {
             <View className="mt-10 px-5">
               <Text className="text-center text-gray-500">
                 {searchQuery.trim()
-                  ? "No movies found"
+                  ? searchQuery.trim().length < 2
+                    ? "Type at least 2 characters to search"
+                    : "No movies found"
                   : "Start typing to search for movies"}
               </Text>
             </View>

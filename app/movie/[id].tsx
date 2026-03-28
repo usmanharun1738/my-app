@@ -1,17 +1,18 @@
-import {
-  View,
-  Text,
-  Image,
-  ActivityIndicator,
-  ScrollView,
-  TouchableOpacity,
-} from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback } from "react";
+import {
+    ActivityIndicator,
+    Image,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { icons } from "@/constants/icons";
-import useFetch from "@/services/usefetch";
 import { fetchMovieDetails } from "@/services/api";
+import useFetch from "@/services/usefetch";
 
 interface MovieInfoProps {
   label: string;
@@ -30,10 +31,11 @@ const MovieInfo = ({ label, value }: MovieInfoProps) => (
 const Details = () => {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const movieId = Array.isArray(id) ? id[0] : id;
 
-  const { data: movie, loading } = useFetch(() =>
-    fetchMovieDetails(id as string)
-  );
+  const fetchDetails = useCallback(() => fetchMovieDetails(movieId as string), [movieId]);
+
+  const { data: movie, loading } = useFetch(fetchDetails, Boolean(movieId));
 
   if (loading)
     return (
