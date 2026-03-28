@@ -1,110 +1,149 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { useFocusEffect } from "@react-navigation/native";
+import { useRouter } from "expo-router";
+import { useCallback } from "react";
+import {
+    ActivityIndicator,
+    FlatList,
+    Image,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { fetchMovies } from "@/services/api";
+import { getTrendingMovies } from "@/services/backend";
+import useFetch from "@/services/usefetch";
 
-export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">CARTAR!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+import { icons } from "@/constants/icons";
+import { images } from "@/constants/images";
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
+import MovieCard from "@/components/MovieCard";
+import SearchBar from "@/components/SearchBar";
+import TrendingCard from "@/components/TrendingCard";
 
-        <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: This is all new to me</ThemedText>
-        <ThemedText>
-          {`This is a text string, this is a string of randon texts, it does not make sense yet but will at the end of the day, it is scrollable this is what important `}
+const Index = () => {
+  const router = useRouter();
 
-        </ThemedText>
+  const fetchTrending = useCallback(() => getTrendingMovies(), []);
+  const fetchLatest = useCallback(() => fetchMovies({ query: "" }), []);
 
-        <ThemedText>random text element</ThemedText>
-        <ThemedText type='defaultSemiBold' >"default-Semi-Bold"</ThemedText>
-      </ThemedView>
+  const {
+    data: trendingMovies,
+    loading: trendingLoading,
+    error: trendingError,
+    refetch: refetchTrending,
+  } = useFetch(fetchTrending);
 
-    </ParallaxScrollView>
+  const {
+    data: movies,
+    loading: moviesLoading,
+    error: moviesError,
+    refetch: refetchMovies,
+  } = useFetch(fetchLatest);
+
+  const trendingList = Array.isArray(trendingMovies) ? trendingMovies : [];
+  const latestMovies = Array.isArray(movies) ? movies : [];
+
+  useFocusEffect(
+    useCallback(() => {
+      refetchTrending();
+      refetchMovies();
+    }, [refetchTrending, refetchMovies])
   );
-}
 
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
+  return (
+    <View className="flex-1 bg-primary">
+      <Image
+        source={images.bg}
+        className="absolute w-full z-0"
+        resizeMode="cover"
+      />
+
+      <ScrollView
+        className="flex-1 px-5"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ minHeight: "100%", paddingBottom: 10 }}
+      >
+        <Image source={icons.logo} className="w-12 h-10 mt-20 mb-5 mx-auto" />
+
+        {moviesLoading || trendingLoading ? (
+          <ActivityIndicator
+            size="large"
+            color="#0000ff"
+            className="mt-10 self-center"
+          />
+        ) : moviesError || trendingError ? (
+          <View className="mt-10 px-5">
+            <Text className="text-red-400 text-center">
+              Error: {moviesError?.message || trendingError?.message}
+            </Text>
+            <TouchableOpacity
+              className="mt-4 self-center bg-accent px-5 py-2 rounded-full"
+              onPress={() => {
+                refetchTrending();
+                refetchMovies();
+              }}
+            >
+              <Text className="text-white font-semibold">Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View className="flex-1 mt-5">
+            <SearchBar
+              onPress={() => {
+                router.push("/search");
+              }}
+              placeholder="Search for a movie"
+            />
+
+            {trendingList.length > 0 && (
+              <View className="mt-10">
+                <Text className="text-lg text-white font-bold mb-3">
+                  Trending Movies
+                </Text>
+                <FlatList
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  className="mb-4 mt-3"
+                  data={trendingList}
+                  contentContainerStyle={{
+                    gap: 26,
+                  }}
+                  renderItem={({ item, index }) => (
+                    <TrendingCard movie={item} index={index} />
+                  )}
+                  keyExtractor={(item) => item.movie_id.toString()}
+                  ItemSeparatorComponent={() => <View className="w-4" />}
+                />
+              </View>
+            )}
+
+            <>
+              <Text className="text-lg text-white font-bold mt-5 mb-3">
+                Latest Movies
+              </Text>
+
+              <FlatList
+                data={latestMovies}
+                renderItem={({ item }) => <MovieCard {...item} />}
+                keyExtractor={(item) => item.id.toString()}
+                numColumns={3}
+                columnWrapperStyle={{
+                  justifyContent: "flex-start",
+                  gap: 20,
+                  paddingRight: 5,
+                  marginBottom: 10,
+                }}
+                className="mt-2 pb-32"
+                scrollEnabled={false}
+              />
+            </>
+          </View>
+        )}
+      </ScrollView>
+    </View>
+  );
+};
+
+export default Index;
