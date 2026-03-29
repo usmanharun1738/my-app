@@ -92,3 +92,79 @@ export const getTrendingMovies = async (): Promise<TrendingMovie[]> => {
     return [];
   }
 };
+
+export const getWatchlist = async (): Promise<WatchlistMovie[]> => {
+  const url = getApiUrl("/api/watchlist");
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw await buildHttpError(response, "Failed to fetch watchlist", url);
+    }
+
+    const payload = await response.json();
+
+    if (Array.isArray(payload)) {
+      return payload as WatchlistMovie[];
+    }
+
+    if (Array.isArray(payload?.data)) {
+      return payload.data as WatchlistMovie[];
+    }
+
+    return [];
+  } catch (error) {
+    console.error("Error fetching watchlist:", error);
+    return [];
+  }
+};
+
+export const addToWatchlist = async (movie: {
+  id: number;
+  title: string;
+  poster_path?: string | null;
+  release_date?: string | null;
+  vote_average?: number | null;
+}): Promise<void> => {
+  const url = getApiUrl("/api/watchlist");
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      movieId: movie.id,
+      title: movie.title,
+      posterPath: movie.poster_path ?? null,
+      releaseDate: movie.release_date ?? null,
+      voteAverage: movie.vote_average ?? null,
+    }),
+  });
+
+  if (!response.ok) {
+    throw await buildHttpError(response, "Failed to add to watchlist", url);
+  }
+};
+
+export const removeFromWatchlist = async (movieId: number): Promise<void> => {
+  const url = getApiUrl(`/api/watchlist/${movieId}`);
+
+  const response = await fetch(url, {
+    method: "DELETE",
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw await buildHttpError(response, "Failed to remove from watchlist", url);
+  }
+};

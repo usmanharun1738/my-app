@@ -75,3 +75,13 @@ interface TrendingCardProps {
   movie: TrendingMovie;
   index: number;
 }
+
+interface WatchlistMovie {
+  id: number;
+  movie_id: number;
+  title: string;
+  poster_path: string | null;
+  release_date: string | null;
+  vote_average: number | null;
+  created_at: string;
+}

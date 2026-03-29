@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback } from "react";
 import {
     ActivityIndicator,
+    Alert,
     Image,
     ScrollView,
     Text,
@@ -12,6 +13,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { icons } from "@/constants/icons";
 import { fetchMovieDetails } from "@/services/api";
+import {
+    addToWatchlist,
+    getWatchlist,
+    removeFromWatchlist,
+} from "@/services/backend";
 import useFetch from "@/services/usefetch";
 
 interface MovieInfoProps {
@@ -34,8 +40,66 @@ const Details = () => {
   const movieId = Array.isArray(id) ? id[0] : id;
 
   const fetchDetails = useCallback(() => fetchMovieDetails(movieId as string), [movieId]);
+  const fetchWatchlist = useCallback(() => getWatchlist(), []);
 
   const { data: movie, loading } = useFetch(fetchDetails, Boolean(movieId));
+  const { data: watchlist, refetch: refetchWatchlist } = useFetch(fetchWatchlist);
+
+  const isSaved =
+    Array.isArray(watchlist) && !!movie
+      ? watchlist.some((item) => item.movie_id === movie.id)
+      : false;
+
+  const handleSave = async () => {
+    if (!movie) {
+      return;
+    }
+
+    if (isSaved) {
+      Alert.alert("Remove", "Remove this movie from watchlist?", [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await removeFromWatchlist(movie.id);
+              await refetchWatchlist();
+              Alert.alert("movie removed");
+            } catch (removeError) {
+              Alert.alert(
+                "Remove failed",
+                removeError instanceof Error ? removeError.message : "Unknown error"
+              );
+            }
+          },
+        },
+      ]);
+
+      return;
+    }
+
+    try {
+      await addToWatchlist({
+        id: movie.id,
+        title: movie.title,
+        poster_path: movie.poster_path,
+        release_date: movie.release_date,
+        vote_average: movie.vote_average,
+      });
+      await refetchWatchlist();
+
+      Alert.alert("movie saved");
+    } catch (saveError) {
+      Alert.alert(
+        "Save failed",
+        saveError instanceof Error ? saveError.message : "Unknown error"
+      );
+    }
+  };
 
   if (loading)
     return (
@@ -56,10 +120,16 @@ const Details = () => {
             resizeMode="stretch"
           />
 
-          <TouchableOpacity className="absolute bottom-5 right-5 rounded-full size-14 bg-white flex items-center justify-center">
+          <TouchableOpacity
+            className={`absolute bottom-5 right-5 rounded-full size-14 flex items-center justify-center ${
+              isSaved ? "bg-accent" : "bg-white"
+            }`}
+            onPress={handleSave}
+          >
             <Image
-              source={icons.play}
-              className="w-6 h-7 ml-1"
+              source={icons.save}
+              className="w-6 h-6"
+              tintColor={isSaved ? "#FFFFFF" : "#151312"}
               resizeMode="stretch"
             />
           </TouchableOpacity>

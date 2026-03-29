@@ -92,6 +92,8 @@ php artisan migrate
 ```bash
 cd backend-api
 php artisan serve --host=0.0.0.0 --port=8000
+
+fuser -k 8000/tcp >/dev/null 2>&1 || true && php artisan serve --host=0.0.0.0 --port=8000
 ```
 
 2) Start Expo frontend
