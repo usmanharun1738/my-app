@@ -60,10 +60,6 @@ export const fetchMovies = async ({
     searchParams.set("minRating", String(filters.minRating));
   }
 
-  if (filters?.releaseDate) {
-    searchParams.set("releaseDate", filters.releaseDate);
-  }
-
   if (filters?.sortBy) {
     searchParams.set("sortBy", filters.sortBy);
   }

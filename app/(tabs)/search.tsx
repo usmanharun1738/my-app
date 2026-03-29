@@ -21,13 +21,11 @@ const Search = () => {
     genreId: number | null;
     year: number | null;
     minRating: number | null;
-    releaseDate: string | null;
     sortBy: "popular" | "release_desc" | "release_asc";
   }>({
     genreId: null,
     year: null,
     minRating: null,
-    releaseDate: null,
     sortBy: "popular",
   });
 
@@ -50,7 +48,19 @@ const Search = () => {
     const runSearch = async () => {
       const normalizedQuery = debouncedQuery.trim();
 
-      if (!normalizedQuery || normalizedQuery.length < 2) {
+      // Only fetch if query is long enough OR if filters are active
+      const hasActiveFilters = Object.values(filters).some(
+        (val) => val !== null && val !== "popular"
+      );
+
+      if (!normalizedQuery && !hasActiveFilters) {
+        setMovies([]);
+        setError(null);
+        setLoading(false);
+        return;
+      }
+
+      if (normalizedQuery && normalizedQuery.length < 2) {
         setMovies([]);
         setError(null);
         setLoading(false);
@@ -127,6 +137,28 @@ const Search = () => {
     }
   };
 
+  const handleApplyFilters = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const results = await fetchMovies({
+        query: searchQuery.trim() || "",
+        filters,
+      });
+
+      setMovies(results);
+    } catch (fetchError) {
+      setError(
+        fetchError instanceof Error
+          ? fetchError
+          : new Error("An unknown error occurred")
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <View className="flex-1 bg-primary">
       <Image
@@ -162,7 +194,7 @@ const Search = () => {
               />
 
               <View className="mt-3">
-                <MovieFilters filters={filters} onChange={setFilters} />
+                <MovieFilters filters={filters} onChange={setFilters} onApply={handleApplyFilters} />
               </View>
             </View>
 

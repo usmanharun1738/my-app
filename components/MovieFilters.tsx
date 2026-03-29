@@ -1,13 +1,10 @@
-import DateTimePicker, {
-  DateTimePickerEvent,
-} from "@react-native-community/datetimepicker";
 import { useMemo, useState } from "react";
 import {
-  Modal,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
+    Modal,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 export type SortByOption = "popular" | "release_desc" | "release_asc";
@@ -16,13 +13,13 @@ export interface FiltersState {
   genreId: number | null;
   year: number | null;
   minRating: number | null;
-  releaseDate: string | null;
   sortBy: SortByOption;
 }
 
 interface Props {
   filters: FiltersState;
   onChange: (next: FiltersState) => void;
+  onApply?: () => void;
 }
 
 const GENRE_OPTIONS: Array<{ label: string; value: number | null }> = [
@@ -117,19 +114,17 @@ const OptionButton = ({
   </TouchableOpacity>
 );
 
-const MovieFilters = ({ filters, onChange }: Props) => {
+const MovieFilters = ({ filters, onChange, onApply }: Props) => {
   const [open, setOpen] = useState(false);
   const [activeField, setActiveField] = useState<
     "genre" | "year" | "rating" | "sort" | null
   >(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const activeCount = useMemo(() => {
     let count = 0;
     if (filters.genreId) count += 1;
     if (filters.year) count += 1;
     if (filters.minRating) count += 1;
-    if (filters.releaseDate) count += 1;
     if (filters.sortBy !== "popular") count += 1;
     return count;
   }, [filters]);
@@ -148,22 +143,6 @@ const MovieFilters = ({ filters, onChange }: Props) => {
   const selectedSort =
     SORT_OPTIONS.find((option) => option.value === filters.sortBy)?.label ||
     "Popular";
-
-  const handleDateChange = (event: DateTimePickerEvent, date?: Date) => {
-    if (event.type === "dismissed") {
-      setShowDatePicker(false);
-      return;
-    }
-
-    if (date) {
-      onChange({
-        ...filters,
-        releaseDate: formatDate(date),
-      });
-    }
-
-    setShowDatePicker(false);
-  };
 
   return (
     <View>
@@ -256,15 +235,6 @@ const MovieFilters = ({ filters, onChange }: Props) => {
               </DropdownField>
 
               <DropdownField
-                label="Release Date"
-                value={filters.releaseDate || "Any date"}
-                isOpen={false}
-                onToggle={() => setShowDatePicker(true)}
-              >
-                <View />
-              </DropdownField>
-
-              <DropdownField
                 label="Sort by Release"
                 value={selectedSort}
                 isOpen={activeField === "sort"}
@@ -293,7 +263,6 @@ const MovieFilters = ({ filters, onChange }: Props) => {
                       genreId: null,
                       year: null,
                       minRating: null,
-                      releaseDate: null,
                       sortBy: "popular",
                     });
                     setActiveField(null);
@@ -304,7 +273,10 @@ const MovieFilters = ({ filters, onChange }: Props) => {
 
                 <TouchableOpacity
                   className="flex-1 bg-accent rounded-xl py-3"
-                  onPress={() => setOpen(false)}
+                  onPress={() => {
+                    setOpen(false);
+                    onApply?.();
+                  }}
                 >
                   <Text className="text-white text-center font-semibold">Apply</Text>
                 </TouchableOpacity>
@@ -313,16 +285,6 @@ const MovieFilters = ({ filters, onChange }: Props) => {
           </View>
         </View>
       </Modal>
-
-      {showDatePicker ? (
-        <DateTimePicker
-          mode="date"
-          display="default"
-          value={filters.releaseDate ? new Date(filters.releaseDate) : new Date()}
-          onChange={handleDateChange}
-          maximumDate={new Date()}
-        />
-      ) : null}
     </View>
   );
 };
