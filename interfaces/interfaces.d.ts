@@ -92,5 +92,6 @@ interface MovieFilters {
   genreId?: number | null;
   year?: number | null;
   minRating?: number | null;
+  releaseDate?: string | null;
   sortBy?: SortByOption;
 }

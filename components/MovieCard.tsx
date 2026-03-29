@@ -1,6 +1,7 @@
 import { Link } from "expo-router";
-import { Text, Image, TouchableOpacity, View } from "react-native";
+import { Image, Text, TouchableOpacity, View } from "react-native";
 
+import { getPrimaryGenreName } from "@/constants/genres";
 import { icons } from "@/constants/icons";
 
 const MovieCard = ({
@@ -9,7 +10,10 @@ const MovieCard = ({
   title,
   vote_average,
   release_date,
+  genre_ids,
 }: Movie) => {
+  const genre = getPrimaryGenreName(genre_ids);
+
   return (
     <Link href={`/movie/${id}`} asChild>
       <TouchableOpacity className="w-[30%]">
@@ -38,8 +42,8 @@ const MovieCard = ({
           <Text className="text-xs text-light-300 font-medium mt-1">
             {release_date?.split("-")[0]}
           </Text>
-          <Text className="text-xs font-medium text-light-300 uppercase">
-            Movie
+          <Text className="text-xs font-medium text-light-300 ">
+            {genre}
           </Text>
         </View>
       </TouchableOpacity>

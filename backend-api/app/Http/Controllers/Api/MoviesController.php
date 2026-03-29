@@ -46,6 +46,10 @@ class MoviesController extends Controller
                 $queryParams['vote_average.gte'] = $filters['minRating'];
             }
 
+            if ($filters['releaseDate']) {
+                $queryParams['primary_release_date.gte'] = $filters['releaseDate'];
+            }
+
             try {
                 $response = Http::withHeaders([
                     'accept' => 'application/json',
@@ -157,6 +161,7 @@ class MoviesController extends Controller
             'genreId' => $request->integer('genreId') ?: null,
             'year' => $request->integer('year') ?: null,
             'minRating' => $request->integer('minRating') ?: null,
+            'releaseDate' => $request->string('releaseDate')->toString() ?: null,
             'sortBy' => in_array($sortBy, ['popular', 'release_desc', 'release_asc'], true)
                 ? $sortBy
                 : 'popular',
@@ -195,6 +200,18 @@ class MoviesController extends Controller
                 $releaseDate = (string) ($movie['release_date'] ?? '');
 
                 return str_starts_with($releaseDate, (string) $filters['year']);
+            });
+        }
+
+        if ($filters['releaseDate']) {
+            $filtered = $filtered->filter(function (array $movie) use ($filters): bool {
+                $releaseDate = (string) ($movie['release_date'] ?? '');
+
+                if ($releaseDate === '') {
+                    return false;
+                }
+
+                return $releaseDate >= $filters['releaseDate'];
             });
         }
 

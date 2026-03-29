@@ -21,11 +21,13 @@ const Search = () => {
     genreId: number | null;
     year: number | null;
     minRating: number | null;
+    releaseDate: string | null;
     sortBy: "popular" | "release_desc" | "release_asc";
   }>({
     genreId: null,
     year: null,
     minRating: null,
+    releaseDate: null,
     sortBy: "popular",
   });
 
