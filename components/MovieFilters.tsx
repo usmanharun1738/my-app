@@ -62,14 +62,6 @@ const SORT_OPTIONS: Array<{ label: string; value: SortByOption }> = [
   { label: "Oldest first", value: "release_asc" },
 ];
 
-const formatDate = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-};
-
 const DropdownField = ({
   label,
   value,
@@ -146,14 +138,28 @@ const MovieFilters = ({ filters, onChange, onApply }: Props) => {
 
   return (
     <View>
-      <TouchableOpacity
-        className="bg-dark-100 rounded-full px-4 py-2 self-start"
-        onPress={() => setOpen(true)}
-      >
-        <Text className="text-white text-xs font-semibold">
-          Filters{activeCount > 0 ? ` (${activeCount})` : ""}
+
+      <View className="bg-dark-100/90 border border-dark-200 rounded-2xl p-4">
+        <Text className="text-white text-base font-semibold">
+         Discover Movies
         </Text>
-      </TouchableOpacity>
+        <Text className="text-light-200 text-xs mt-1">
+          Choose genre, year, rating, and sort to discover what to watch.
+        </Text>
+
+        <TouchableOpacity
+          className="mt-3 bg-accent rounded-xl px-4 py-3 flex-row items-center justify-between"
+          onPress={() => setOpen(true)}
+        >
+
+
+
+
+          <Text className="text-white text-xs font-semibold bg-white/20 px-2 py-1 rounded-full">
+            {activeCount > 0 ? `${activeCount} active` : "No filters"}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       <Modal
         visible={open}

@@ -31,6 +31,17 @@ const MovieCard = ({
           {title}
         </Text>
 
+        <View className="flex-row items-center justify-between">
+
+            <Text className="text-xs font-medium text-light-300 ">
+            {genre}
+          </Text>
+          <Text className="text-xs text-light-300 font-medium mt-1">
+            {release_date?.split("-")[0]}
+          </Text>
+
+        </View>
+
         <View className="flex-row items-center justify-start gap-x-1">
           <Image source={icons.star} className="size-4" />
           <Text className="text-xs text-white font-bold uppercase">
@@ -38,14 +49,7 @@ const MovieCard = ({
           </Text>
         </View>
 
-        <View className="flex-row items-center justify-between">
-          <Text className="text-xs text-light-300 font-medium mt-1">
-            {release_date?.split("-")[0]}
-          </Text>
-          <Text className="text-xs font-medium text-light-300 ">
-            {genre}
-          </Text>
-        </View>
+
       </TouchableOpacity>
     </Link>
   );
