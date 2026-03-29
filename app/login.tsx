@@ -30,7 +30,7 @@ const LoginScreen = () => {
         password,
       });
 
-      router.replace("/(tabs)/profile");
+      router.replace("/(tabs)");
     } catch (error) {
       Alert.alert(
         "Login failed",

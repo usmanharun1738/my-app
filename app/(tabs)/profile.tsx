@@ -5,7 +5,8 @@ import {
     logoutUser,
     registerUser,
 } from "@/services/backend";
-import { useEffect, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback, useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -24,12 +25,19 @@ const Profile = () => {
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState<ProfileSummaryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(Boolean(getAuthToken()));
 
   const loadSummary = async () => {
-    if (!getAuthToken()) {
+    const token = getAuthToken();
+
+    if (!token) {
+      setIsAuthenticated(false);
       setSummary(null);
+      setError(null);
       return;
     }
+
+    setIsAuthenticated(true);
 
     setLoading(true);
     setError(null);
@@ -49,6 +57,12 @@ const Profile = () => {
     loadSummary();
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      loadSummary();
+    }, [])
+  );
+
   const handleRegister = async () => {
     if (!name.trim() || !email.trim() || !password.trim()) {
       Alert.alert("Missing fields", "Name, email, and password are required.");
@@ -60,6 +74,7 @@ const Profile = () => {
 
     try {
       await registerUser({ name: name.trim(), email: email.trim(), password });
+      setIsAuthenticated(true);
       await loadSummary();
     } catch (authError) {
       setError(authError instanceof Error ? authError.message : "Registration failed");
@@ -79,6 +94,7 @@ const Profile = () => {
 
     try {
       await loginUser({ email: email.trim(), password });
+      setIsAuthenticated(true);
       await loadSummary();
     } catch (authError) {
       setError(authError instanceof Error ? authError.message : "Login failed");
@@ -93,7 +109,9 @@ const Profile = () => {
 
     try {
       await logoutUser();
+      setIsAuthenticated(false);
       setSummary(null);
+      setError(null);
     } catch (logoutError) {
       setError(logoutError instanceof Error ? logoutError.message : "Logout failed");
     } finally {
@@ -158,7 +176,7 @@ const Profile = () => {
           </View>
 
           <Pressable
-            disabled={loading || !summary}
+            disabled={loading || !isAuthenticated}
             onPress={handleLogout}
             className="bg-dark-200 rounded-xl py-3 mt-3"
           >
@@ -175,10 +193,10 @@ const Profile = () => {
         <View className="bg-dark-100 rounded-2xl p-4 mt-4">
           <Text className="text-white font-semibold text-base">Identity</Text>
           <Text className="text-light-200 text-sm mt-2">
-            {summary ? summary.user.name : "Not signed in"}
+            {summary ? summary.user.name : isAuthenticated ? "Loading profile..." : "Not signed in"}
           </Text>
           <Text className="text-light-200 text-sm mt-1">
-            {summary ? summary.user.email : "Login to see account details"}
+            {summary ? summary.user.email : isAuthenticated ? "Loading account details..." : "Login to see account details"}
           </Text>
         </View>
 
@@ -201,7 +219,11 @@ const Profile = () => {
               </View>
             ))
           ) : (
-            <Text className="text-light-200 text-sm mt-2">No stats yet. Search for movies after login.</Text>
+            <Text className="text-light-200 text-sm mt-2">
+              {isAuthenticated
+                ? "No stats yet. Search for movies to build your profile."
+                : "Login to view your personal stats."}
+            </Text>
           )}
         </View>
       </ScrollView>

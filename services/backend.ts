@@ -127,7 +127,7 @@ export const logoutUser = async (): Promise<void> => {
     },
   });
 
-  if (!response.ok) {
+  if (!response.ok && response.status !== 401) {
     throw await buildHttpError(response, "Failed to logout", url);
   }
 

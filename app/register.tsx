@@ -32,7 +32,7 @@ const RegisterScreen = () => {
         password,
       });
 
-      router.replace("/(tabs)/profile");
+      router.replace("/(tabs)");
     } catch (error) {
       Alert.alert(
         "Registration failed",
