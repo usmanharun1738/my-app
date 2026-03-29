@@ -1,4 +1,5 @@
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+let authToken: string | null = null;
 
 const getApiUrl = (path: string) => {
   if (!API_BASE_URL) {
@@ -39,6 +40,119 @@ const buildHttpError = async (
   );
 };
 
+const getAuthHeaders = (): Record<string, string> => {
+  if (!authToken) {
+    return {};
+  }
+
+  return {
+    Authorization: `Bearer ${authToken}`,
+  };
+};
+
+export const setAuthToken = (token: string | null) => {
+  authToken = token;
+};
+
+export const getAuthToken = () => authToken;
+
+export const registerUser = async (payload: {
+  name: string;
+  email: string;
+  password: string;
+  deviceName?: string;
+}): Promise<{ user: AuthUser; token: string }> => {
+  const url = getApiUrl("/api/auth/register");
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      name: payload.name,
+      email: payload.email,
+      password: payload.password,
+      device_name: payload.deviceName ?? "expo-mobile",
+    }),
+  });
+
+  if (!response.ok) {
+    throw await buildHttpError(response, "Failed to register", url);
+  }
+
+  const data = (await response.json()) as { data: { user: AuthUser; token: string } };
+  setAuthToken(data.data.token);
+  return data.data;
+};
+
+export const loginUser = async (payload: {
+  email: string;
+  password: string;
+  deviceName?: string;
+}): Promise<{ user: AuthUser; token: string }> => {
+  const url = getApiUrl("/api/auth/login");
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      email: payload.email,
+      password: payload.password,
+      device_name: payload.deviceName ?? "expo-mobile",
+    }),
+  });
+
+  if (!response.ok) {
+    throw await buildHttpError(response, "Failed to login", url);
+  }
+
+  const data = (await response.json()) as { data: { user: AuthUser; token: string } };
+  setAuthToken(data.data.token);
+  return data.data;
+};
+
+export const logoutUser = async (): Promise<void> => {
+  const url = getApiUrl("/api/auth/logout");
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      ...getAuthHeaders(),
+    },
+  });
+
+  if (!response.ok) {
+    throw await buildHttpError(response, "Failed to logout", url);
+  }
+
+  setAuthToken(null);
+};
+
+export const getProfileSummary = async (): Promise<ProfileSummaryResponse> => {
+  const url = getApiUrl("/api/profile/summary");
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      ...getAuthHeaders(),
+    },
+  });
+
+  if (!response.ok) {
+    throw await buildHttpError(response, "Failed to fetch profile summary", url);
+  }
+
+  const payload = (await response.json()) as { data: ProfileSummaryResponse };
+  return payload.data;
+};
+
 export const updateSearchCount = async (query: string, movie: Movie) => {
   try {
     await fetch(getApiUrl("/api/analytics/search"), {
@@ -46,11 +160,13 @@ export const updateSearchCount = async (query: string, movie: Movie) => {
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
+        ...getAuthHeaders(),
       },
       body: JSON.stringify({
         searchTerm: query,
         movieId: movie.id,
         title: movie.title,
+        genreIds: movie.genre_ids ?? [],
         posterUrl: movie.poster_path
           ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
           : null,

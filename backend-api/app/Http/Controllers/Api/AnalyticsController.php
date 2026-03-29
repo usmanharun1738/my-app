@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreSearchAnalyticsRequest;
 use App\Models\SearchStat;
+use App\Models\UserSearchStat;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -14,6 +15,8 @@ class AnalyticsController extends Controller
     public function storeSearch(StoreSearchAnalyticsRequest $request): JsonResponse
     {
         $validated = $request->validated();
+        $user = auth('sanctum')->user();
+        $genreIds = array_values(array_unique(array_map('intval', $validated['genreIds'] ?? [])));
 
         $normalizedTerm = Str::of($validated['searchTerm'])
             ->trim()
@@ -31,6 +34,21 @@ class AnalyticsController extends Controller
         $stat->poster_url = $validated['posterUrl'] ?? null;
         $stat->count = ($stat->count ?? 0) + 1;
         $stat->save();
+
+        if ($user) {
+            $userStat = UserSearchStat::query()->firstOrNew([
+                'user_id' => $user->id,
+                'search_term_normalized' => $normalizedTerm,
+                'movie_id' => $validated['movieId'],
+            ]);
+
+            $userStat->search_term = trim($validated['searchTerm']);
+            $userStat->title = $validated['title'];
+            $userStat->poster_url = $validated['posterUrl'] ?? null;
+            $userStat->genre_ids = $genreIds;
+            $userStat->count = ($userStat->count ?? 0) + 1;
+            $userStat->save();
+        }
 
         return response()->json([
             'data' => [

@@ -27,6 +27,8 @@ class StoreSearchAnalyticsRequest extends FormRequest
             'movieId' => ['required', 'integer', 'min:1'],
             'title' => ['required', 'string', 'max:255'],
             'posterUrl' => ['nullable', 'url', 'max:1024'],
+            'genreIds' => ['nullable', 'array', 'max:6'],
+            'genreIds.*' => ['integer', 'min:1'],
         ];
     }
 }

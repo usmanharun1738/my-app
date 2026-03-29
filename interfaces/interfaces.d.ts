@@ -86,12 +86,36 @@ interface WatchlistMovie {
   created_at: string;
 }
 
+interface AuthUser {
+  id: number;
+  name: string;
+  email: string;
+}
+
+interface TopGenreStat {
+  id: number;
+  name: string;
+  count: number;
+}
+
+interface ProfileSummaryResponse {
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    createdAt?: string;
+  };
+  stats: {
+    searchCount: number;
+    topGenres: TopGenreStat[];
+  };
+}
+
 type SortByOption = "popular" | "release_desc" | "release_asc";
 
 interface MovieFilters {
   genreId?: number | null;
   year?: number | null;
   minRating?: number | null;
-  releaseDate?: string | null;
   sortBy?: SortByOption;
 }
