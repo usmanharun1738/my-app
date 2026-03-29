@@ -8,6 +8,7 @@ import { fetchMovies } from "@/services/api";
 import { updateSearchCount } from "@/services/backend";
 
 import MovieDisplayCard from "@/components/MovieCard";
+import MovieFilters from "@/components/MovieFilters";
 import SearchBar from "@/components/SearchBar";
 
 const Search = () => {
@@ -16,6 +17,17 @@ const Search = () => {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [filters, setFilters] = useState<{
+    genreId: number | null;
+    year: number | null;
+    minRating: number | null;
+    sortBy: "popular" | "release_desc" | "release_asc";
+  }>({
+    genreId: null,
+    year: null,
+    minRating: null,
+    sortBy: "popular",
+  });
 
   const handleSearch = (text: string) => {
     setSearchQuery(text);
@@ -47,7 +59,10 @@ const Search = () => {
       setError(null);
 
       try {
-        const results = await fetchMovies({ query: normalizedQuery });
+        const results = await fetchMovies({
+          query: normalizedQuery,
+          filters,
+        });
 
         if (cancelled) {
           return;
@@ -76,7 +91,7 @@ const Search = () => {
     return () => {
       cancelled = true;
     };
-  }, [debouncedQuery]);
+  }, [debouncedQuery, filters]);
 
   const handleSubmitSearch = async () => {
     const normalizedQuery = searchQuery.trim();
@@ -89,7 +104,10 @@ const Search = () => {
     setError(null);
 
     try {
-      const results = await fetchMovies({ query: normalizedQuery });
+      const results = await fetchMovies({
+        query: normalizedQuery,
+        filters,
+      });
 
       setMovies(results);
 
@@ -140,6 +158,10 @@ const Search = () => {
                 onChangeText={handleSearch}
                 onSubmitEditing={handleSubmitSearch}
               />
+
+              <View className="mt-3">
+                <MovieFilters filters={filters} onChange={setFilters} />
+              </View>
             </View>
 
             {loading && (

@@ -41,12 +41,36 @@ const buildHttpError = async (
 
 export const fetchMovies = async ({
   query,
+  filters,
 }: {
   query: string;
+  filters?: MovieFilters;
 }): Promise<Movie[]> => {
-  const url = query
-    ? getApiUrl(`/api/movies/search?q=${encodeURIComponent(query)}`)
-    : getApiUrl("/api/movies/discover");
+  const searchParams = new URLSearchParams();
+
+  if (filters?.genreId) {
+    searchParams.set("genreId", String(filters.genreId));
+  }
+
+  if (filters?.year) {
+    searchParams.set("year", String(filters.year));
+  }
+
+  if (filters?.minRating) {
+    searchParams.set("minRating", String(filters.minRating));
+  }
+
+  if (filters?.sortBy) {
+    searchParams.set("sortBy", filters.sortBy);
+  }
+
+  if (query) {
+    searchParams.set("q", query);
+  }
+
+  const endpoint = query ? "/api/movies/search" : "/api/movies/discover";
+  const queryString = searchParams.toString();
+  const url = getApiUrl(queryString ? `${endpoint}?${queryString}` : endpoint);
 
   try {
     const response = await fetch(url, {

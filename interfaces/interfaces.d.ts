@@ -85,3 +85,12 @@ interface WatchlistMovie {
   vote_average: number | null;
   created_at: string;
 }
+
+type SortByOption = "popular" | "release_desc" | "release_asc";
+
+interface MovieFilters {
+  genreId?: number | null;
+  year?: number | null;
+  minRating?: number | null;
+  sortBy?: SortByOption;
+}
