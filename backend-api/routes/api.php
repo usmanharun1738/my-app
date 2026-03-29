@@ -51,7 +51,7 @@ Route::prefix('movies')->group(function () use ($moviesDiscoverThrottle, $movies
         ->middleware($moviesDetailThrottle);
 });
 
-Route::prefix('watchlist')->group(function () use ($watchlistThrottle): void {
+Route::prefix('watchlist')->middleware('auth:sanctum')->group(function () use ($watchlistThrottle): void {
     Route::get('/', [WatchlistController::class, 'index'])
         ->middleware($watchlistThrottle);
 

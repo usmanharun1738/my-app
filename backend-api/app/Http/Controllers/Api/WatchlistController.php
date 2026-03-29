@@ -6,12 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreWatchlistRequest;
 use App\Models\WatchlistItem;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class WatchlistController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $user = $request->user();
+
         $items = WatchlistItem::query()
+            ->where('user_id', $user->id)
             ->orderByDesc('created_at')
             ->get()
             ->map(fn(WatchlistItem $item): array => [
@@ -30,9 +34,13 @@ class WatchlistController extends Controller
     public function store(StoreWatchlistRequest $request): JsonResponse
     {
         $validated = $request->validated();
+        $user = $request->user();
 
         $item = WatchlistItem::query()->updateOrCreate(
-            ['movie_id' => $validated['movieId']],
+            [
+                'user_id' => $user->id,
+                'movie_id' => $validated['movieId'],
+            ],
             [
                 'title' => $validated['title'],
                 'poster_path' => $validated['posterPath'] ?? null,
@@ -54,9 +62,14 @@ class WatchlistController extends Controller
         ], 201);
     }
 
-    public function destroy(string $movieId): JsonResponse
+    public function destroy(Request $request, string $movieId): JsonResponse
     {
-        WatchlistItem::query()->where('movie_id', $movieId)->delete();
+        $user = $request->user();
+
+        WatchlistItem::query()
+            ->where('user_id', $user->id)
+            ->where('movie_id', $movieId)
+            ->delete();
 
         return response()->json([
             'message' => 'Movie removed from watchlist',

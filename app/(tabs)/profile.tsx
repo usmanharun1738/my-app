@@ -6,11 +6,13 @@ import {
     registerUser,
 } from "@/services/backend";
 import { useFocusEffect } from "@react-navigation/native";
+import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
     Pressable,
+    RefreshControl,
     ScrollView,
     Text,
     TextInput,
@@ -23,6 +25,7 @@ const Profile = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [summary, setSummary] = useState<ProfileSummaryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(Boolean(getAuthToken()));
@@ -112,6 +115,7 @@ const Profile = () => {
       setIsAuthenticated(false);
       setSummary(null);
       setError(null);
+      router.replace("../../login");
     } catch (logoutError) {
       setError(logoutError instanceof Error ? logoutError.message : "Logout failed");
     } finally {
@@ -119,9 +123,24 @@ const Profile = () => {
     }
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadSummary();
+    setRefreshing(false);
+  };
+
   return (
     <SafeAreaView className="bg-primary flex-1 px-5">
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 120 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#ffffff"
+          />
+        }
+      >
         <Text className="text-white text-2xl font-bold mt-4">Profile</Text>
         <Text className="text-light-200 text-sm mt-1">
           Manage your account and track your movie discovery habits.
@@ -130,50 +149,58 @@ const Profile = () => {
         <View className="bg-dark-100 rounded-2xl p-4 mt-5">
           <Text className="text-white font-semibold text-base">Account</Text>
 
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            placeholder="Name (for register)"
-            placeholderTextColor="#A8B5DB"
-            className="bg-dark-200 text-white rounded-xl px-4 py-3 mt-3"
-          />
+          {!isAuthenticated ? (
+            <>
+              <TextInput
+                value={name}
+                onChangeText={setName}
+                placeholder="Name (for register)"
+                placeholderTextColor="#A8B5DB"
+                className="bg-dark-200 text-white rounded-xl px-4 py-3 mt-3"
+              />
 
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            placeholder="Email"
-            placeholderTextColor="#A8B5DB"
-            className="bg-dark-200 text-white rounded-xl px-4 py-3 mt-3"
-          />
+              <TextInput
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                placeholder="Email"
+                placeholderTextColor="#A8B5DB"
+                className="bg-dark-200 text-white rounded-xl px-4 py-3 mt-3"
+              />
 
-          <TextInput
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            placeholder="Password"
-            placeholderTextColor="#A8B5DB"
-            className="bg-dark-200 text-white rounded-xl px-4 py-3 mt-3"
-          />
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                placeholder="Password"
+                placeholderTextColor="#A8B5DB"
+                className="bg-dark-200 text-white rounded-xl px-4 py-3 mt-3"
+              />
 
-          <View className="flex-row gap-3 mt-4">
-            <Pressable
-              disabled={loading}
-              onPress={handleRegister}
-              className="flex-1 bg-dark-200 rounded-xl py-3"
-            >
-              <Text className="text-white text-center font-semibold">Register</Text>
-            </Pressable>
+              <View className="flex-row gap-3 mt-4">
+                <Pressable
+                  disabled={loading}
+                  onPress={handleRegister}
+                  className="flex-1 bg-dark-200 rounded-xl py-3"
+                >
+                  <Text className="text-white text-center font-semibold">Register</Text>
+                </Pressable>
 
-            <Pressable
-              disabled={loading}
-              onPress={handleLogin}
-              className="flex-1 bg-accent rounded-xl py-3"
-            >
-              <Text className="text-white text-center font-semibold">Login</Text>
-            </Pressable>
-          </View>
+                <Pressable
+                  disabled={loading}
+                  onPress={handleLogin}
+                  className="flex-1 bg-accent rounded-xl py-3"
+                >
+                  <Text className="text-white text-center font-semibold">Login</Text>
+                </Pressable>
+              </View>
+            </>
+          ) : (
+            <Text className="text-light-200 text-sm mt-3">
+              You are signed in. Pull down to refresh your latest profile stats.
+            </Text>
+          )}
 
           <Pressable
             disabled={loading || !isAuthenticated}

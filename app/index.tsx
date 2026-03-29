@@ -1,22 +1,40 @@
 import { icons } from "@/constants/icons";
 import { images } from "@/constants/images";
-import { getAuthToken } from "@/services/backend";
+import { getAuthToken, restoreAuthToken } from "@/services/backend";
 import { router } from "expo-router";
 import { useEffect } from "react";
 import { Image, ImageBackground, Text, View } from "react-native";
 
 const SplashScreen = () => {
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (getAuthToken()) {
-        router.replace("/(tabs)");
+    let cancelled = false;
+
+    const bootstrap = async () => {
+      await restoreAuthToken();
+
+      if (cancelled) {
         return;
       }
 
-      router.replace("/welcome");
-    }, 1400);
+      setTimeout(() => {
+        if (cancelled) {
+          return;
+        }
 
-    return () => clearTimeout(timeout);
+        if (getAuthToken()) {
+          router.replace("/(tabs)");
+          return;
+        }
+
+        router.replace("/welcome");
+      }, 1200);
+    };
+
+    bootstrap();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (

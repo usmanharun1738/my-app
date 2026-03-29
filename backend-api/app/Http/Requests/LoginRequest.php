@@ -23,4 +23,13 @@ class LoginRequest extends FormRequest
             'device_name' => ['nullable', 'string', 'max:120'],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'email.required' => 'Email is required.',
+            'email.email' => 'Please provide a valid email address.',
+            'password.required' => 'Password is required.',
+        ];
+    }
 }

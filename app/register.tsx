@@ -11,15 +11,47 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+const validatePassword = (password: string): string | null => {
+  if (password.length < 8) {
+    return "Password must be at least 8 characters long.";
+  }
+
+  if (!/[a-z]/.test(password)) {
+    return "Password must include at least one lowercase letter.";
+  }
+
+  if (!/[A-Z]/.test(password)) {
+    return "Password must include at least one uppercase letter.";
+  }
+
+  if (!/[0-9]/.test(password)) {
+    return "Password must include at least one number.";
+  }
+
+  return null;
+};
+
 const RegisterScreen = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
-    if (!name.trim() || !email.trim() || !password.trim()) {
+    if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
       Alert.alert("Missing fields", "Please fill in all fields.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert("Password mismatch", "Password and confirm password must match.");
+      return;
+    }
+
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      Alert.alert("Weak password", passwordError);
       return;
     }
 
@@ -36,7 +68,7 @@ const RegisterScreen = () => {
     } catch (error) {
       Alert.alert(
         "Registration failed",
-        error instanceof Error ? error.message : "Unable to register"
+        error instanceof Error ? error.message : "Unable to register. Please try again."
       );
     } finally {
       setLoading(false);
@@ -72,6 +104,15 @@ const RegisterScreen = () => {
           onChangeText={setPassword}
           secureTextEntry
           placeholder="Password"
+          placeholderTextColor="#A8B5DB"
+          className="bg-dark-100 text-white rounded-xl px-4 py-4 mt-3"
+        />
+
+        <TextInput
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureTextEntry
+          placeholder="Confirm password"
           placeholderTextColor="#A8B5DB"
           className="bg-dark-100 text-white rounded-xl px-4 py-4 mt-3"
         />

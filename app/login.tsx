@@ -32,9 +32,20 @@ const LoginScreen = () => {
 
       router.replace("/(tabs)");
     } catch (error) {
+      const message = error instanceof Error ? error.message.toLowerCase() : "";
+      const isCredentialError =
+        message.includes("incorrect") ||
+        message.includes("credentials") ||
+        message.includes("http 401") ||
+        message.includes("http 422");
+
       Alert.alert(
         "Login failed",
-        error instanceof Error ? error.message : "Unable to login"
+        isCredentialError
+          ? "Incorrect credentials. Please check your email and password."
+          : error instanceof Error
+            ? error.message
+            : "Unable to login. Please try again."
       );
     } finally {
       setLoading(false);

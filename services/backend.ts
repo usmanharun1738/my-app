@@ -1,5 +1,8 @@
+import * as SecureStore from "expo-secure-store";
+
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 let authToken: string | null = null;
+const AUTH_TOKEN_KEY = "movie_app_auth_token";
 
 const getApiUrl = (path: string) => {
   if (!API_BASE_URL) {
@@ -24,7 +27,22 @@ const buildHttpError = async (
   if (rawText) {
     try {
       const parsed = JSON.parse(rawText);
-      serverMessage = parsed?.message || parsed?.error || rawText;
+      const validationErrors = parsed?.errors;
+
+      if (validationErrors && typeof validationErrors === "object") {
+        const firstField = Object.keys(validationErrors)[0];
+        const firstMessage = Array.isArray(validationErrors[firstField])
+          ? validationErrors[firstField][0]
+          : null;
+
+        if (firstMessage) {
+          serverMessage = String(firstMessage);
+        }
+      }
+
+      if (!serverMessage) {
+        serverMessage = parsed?.message || parsed?.error || rawText;
+      }
     } catch {
       serverMessage = rawText;
     }
@@ -56,6 +74,21 @@ export const setAuthToken = (token: string | null) => {
 
 export const getAuthToken = () => authToken;
 
+const persistAuthToken = async (token: string | null) => {
+  if (!token) {
+    await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
+    return;
+  }
+
+  await SecureStore.setItemAsync(AUTH_TOKEN_KEY, token);
+};
+
+export const restoreAuthToken = async (): Promise<string | null> => {
+  const token = await SecureStore.getItemAsync(AUTH_TOKEN_KEY);
+  setAuthToken(token);
+  return token;
+};
+
 export const registerUser = async (payload: {
   name: string;
   email: string;
@@ -84,6 +117,7 @@ export const registerUser = async (payload: {
 
   const data = (await response.json()) as { data: { user: AuthUser; token: string } };
   setAuthToken(data.data.token);
+  await persistAuthToken(data.data.token);
   return data.data;
 };
 
@@ -113,6 +147,7 @@ export const loginUser = async (payload: {
 
   const data = (await response.json()) as { data: { user: AuthUser; token: string } };
   setAuthToken(data.data.token);
+  await persistAuthToken(data.data.token);
   return data.data;
 };
 
@@ -132,6 +167,7 @@ export const logoutUser = async (): Promise<void> => {
   }
 
   setAuthToken(null);
+  await persistAuthToken(null);
 };
 
 export const getProfileSummary = async (): Promise<ProfileSummaryResponse> => {
@@ -217,6 +253,7 @@ export const getWatchlist = async (): Promise<WatchlistMovie[]> => {
       method: "GET",
       headers: {
         Accept: "application/json",
+        ...getAuthHeaders(),
       },
     });
 
@@ -255,6 +292,7 @@ export const addToWatchlist = async (movie: {
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
+      ...getAuthHeaders(),
     },
     body: JSON.stringify({
       movieId: movie.id,
@@ -277,6 +315,7 @@ export const removeFromWatchlist = async (movieId: number): Promise<void> => {
     method: "DELETE",
     headers: {
       Accept: "application/json",
+      ...getAuthHeaders(),
     },
   });
 
