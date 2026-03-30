@@ -1,8 +1,10 @@
 import { Link } from "expo-router";
+import { useMemo, useState } from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 
 import { getPrimaryGenreName } from "@/constants/genres";
 import { icons } from "@/constants/icons";
+import { getPosterImageUri, POSTER_PLACEHOLDER_URI } from "@/constants/images";
 
 const MovieCard = ({
   id,
@@ -13,18 +15,24 @@ const MovieCard = ({
   genre_ids,
 }: Movie) => {
   const genre = getPrimaryGenreName(genre_ids);
+  const [hasPosterError, setHasPosterError] = useState(false);
+
+  const posterUri = useMemo(() => {
+    if (hasPosterError) {
+      return POSTER_PLACEHOLDER_URI;
+    }
+
+    return getPosterImageUri(poster_path);
+  }, [hasPosterError, poster_path]);
 
   return (
     <Link href={`/movie/${id}`} asChild>
       <TouchableOpacity className="w-[30%]">
         <Image
-          source={{
-            uri: poster_path
-              ? `https://image.tmdb.org/t/p/w500${poster_path}`
-              : "https://placehold.co/600x400/1a1a1a/FFFFFF.png",
-          }}
+          source={{ uri: posterUri }}
           className="w-full h-52 rounded-lg"
           resizeMode="cover"
+          onError={() => setHasPosterError(true)}
         />
 
         <Text className="text-sm font-bold text-white mt-2" numberOfLines={1}>

@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { icons } from "@/constants/icons";
+import { getPosterImageUri, POSTER_PLACEHOLDER_URI } from "@/constants/images";
 import { fetchMovieDetails } from "@/services/api";
 import {
     addToWatchlist,
@@ -41,6 +42,7 @@ const Details = () => {
 
   const fetchDetails = useCallback(() => fetchMovieDetails(movieId as string), [movieId]);
   const fetchWatchlist = useCallback(() => getWatchlist(), []);
+  const [hasPosterError, setHasPosterError] = useState(false);
 
   const { data: movie, loading } = useFetch(fetchDetails, Boolean(movieId));
   const { data: watchlist, refetch: refetchWatchlist } = useFetch(fetchWatchlist);
@@ -49,6 +51,14 @@ const Details = () => {
     Array.isArray(watchlist) && !!movie
       ? watchlist.some((item) => item.movie_id === movie.id)
       : false;
+
+  const posterUri = useMemo(() => {
+    if (hasPosterError) {
+      return POSTER_PLACEHOLDER_URI;
+    }
+
+    return getPosterImageUri(movie?.poster_path ?? null);
+  }, [hasPosterError, movie?.poster_path]);
 
   const handleSave = async () => {
     if (!movie) {
@@ -113,11 +123,10 @@ const Details = () => {
       <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
         <View>
           <Image
-            source={{
-              uri: `https://image.tmdb.org/t/p/w500${movie?.poster_path}`,
-            }}
+            source={{ uri: posterUri }}
             className="w-full h-[550px]"
-            resizeMode="stretch"
+            resizeMode="cover"
+            onError={() => setHasPosterError(true)}
           />
 
           <TouchableOpacity
@@ -185,7 +194,7 @@ const Details = () => {
         </View>
       </ScrollView>
 
-      <TouchableOpacity
+      {/* <TouchableOpacity
         className="absolute bottom-5 left-0 right-0 mx-5 bg-accent rounded-lg py-3.5 flex flex-row items-center justify-center z-50"
         onPress={router.back}
       >
@@ -194,7 +203,7 @@ const Details = () => {
           className="size-5 mr-1 mt-0.5 rotate-180"
           tintColor="#fff"
         />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </View>
   );
 };
