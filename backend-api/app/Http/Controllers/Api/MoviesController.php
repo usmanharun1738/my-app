@@ -38,75 +38,18 @@ class MoviesController extends Controller
         ]));
 
         $cached = Cache::remember($cacheKey, 3600, function () use ($filters, $page, $perPage): array {
-            $queryParams = [
-                'sort_by' => $this->mapDiscoverSort($filters['sortBy']),
-            ];
-
-            if ($filters['genreId']) {
-                $queryParams['with_genres'] = $filters['genreId'];
-            }
-
-            if ($filters['year']) {
-                $queryParams['primary_release_year'] = $filters['year'];
-            }
-
-            if ($filters['minRating']) {
-                $queryParams['vote_average.gte'] = $filters['minRating'];
-            }
-
-            if ($filters['releaseDate']) {
-                $queryParams['primary_release_date.gte'] = $filters['releaseDate'];
-            }
-
-            $offset = ($page - 1) * $perPage;
-            $tmdbPage = (int) floor($offset / $this->tmdbPageSize) + 1;
-            $offsetInTmdbPage = $offset % $this->tmdbPageSize;
-            $pagesNeeded = (int) ceil(($offsetInTmdbPage + $perPage) / $this->tmdbPageSize);
-
-            $mergedResults = [];
-            $totalResults = 0;
-
-            try {
-                for ($index = 0; $index < $pagesNeeded; $index++) {
-                    $response = Http::withHeaders([
-                        'accept' => 'application/json',
-                        'Authorization' => "Bearer {$this->tmdbApiKey}",
-                    ])->get($this->tmdbBaseUrl . '/discover/movie', [
-                        ...$queryParams,
-                        'page' => $tmdbPage + $index,
-                    ]);
-
-                    if ($response->failed()) {
-                        return ['error' => $response->status()];
-                    }
-
-                    $json = $response->json();
-
-                    if ($index === 0) {
-                        $totalResults = (int) ($json['total_results'] ?? 0);
-                    }
-
-                    $mergedResults = [...$mergedResults, ...($json['results'] ?? [])];
-                }
-
-                $results = array_slice($mergedResults, $offsetInTmdbPage, $perPage);
-                $totalPages = max(1, (int) ceil($totalResults / $perPage));
-
-                return [
-                    'results' => $results,
-                    'meta' => [
-                        'page' => $page,
-                        'perPage' => $perPage,
-                        'totalPages' => $totalPages,
-                        'totalResults' => $totalResults,
-                        'hasNextPage' => $page < $totalPages,
-                        'hasPreviousPage' => $page > 1,
-                    ],
-                ];
-            } catch (\Exception $e) {
-                return ['error' => $e->getMessage()];
-            }
+            return $this->fetchDiscoverPayload($filters, $page, $perPage);
         });
+
+        // Guard against stale cached errors from transient upstream failures.
+        if (isset($cached['error'])) {
+            Cache::forget($cacheKey);
+            $cached = $this->fetchDiscoverPayload($filters, $page, $perPage);
+
+            if (! isset($cached['error'])) {
+                Cache::put($cacheKey, $cached, 3600);
+            }
+        }
 
         if (isset($cached['error'])) {
             return response()->json(['error' => 'Failed to fetch movies'], 502);
@@ -125,6 +68,78 @@ class MoviesController extends Controller
         ]);
     }
 
+    private function fetchDiscoverPayload(array $filters, int $page, int $perPage): array
+    {
+        $queryParams = [
+            'sort_by' => $this->mapDiscoverSort($filters['sortBy']),
+        ];
+
+        if ($filters['genreId']) {
+            $queryParams['with_genres'] = $filters['genreId'];
+        }
+
+        if ($filters['year']) {
+            $queryParams['primary_release_year'] = $filters['year'];
+        }
+
+        if ($filters['minRating']) {
+            $queryParams['vote_average.gte'] = $filters['minRating'];
+        }
+
+        if ($filters['releaseDate']) {
+            $queryParams['primary_release_date.gte'] = $filters['releaseDate'];
+        }
+
+        $offset = ($page - 1) * $perPage;
+        $tmdbPage = (int) floor($offset / $this->tmdbPageSize) + 1;
+        $offsetInTmdbPage = $offset % $this->tmdbPageSize;
+        $pagesNeeded = (int) ceil(($offsetInTmdbPage + $perPage) / $this->tmdbPageSize);
+
+        $mergedResults = [];
+        $totalResults = 0;
+
+        try {
+            for ($index = 0; $index < $pagesNeeded; $index++) {
+                $response = Http::withHeaders([
+                    'accept' => 'application/json',
+                    'Authorization' => "Bearer {$this->tmdbApiKey}",
+                ])->get($this->tmdbBaseUrl . '/discover/movie', [
+                    ...$queryParams,
+                    'page' => $tmdbPage + $index,
+                ]);
+
+                if ($response->failed()) {
+                    return ['error' => $response->status()];
+                }
+
+                $json = $response->json();
+
+                if ($index === 0) {
+                    $totalResults = (int) ($json['total_results'] ?? 0);
+                }
+
+                $mergedResults = [...$mergedResults, ...($json['results'] ?? [])];
+            }
+
+            $results = array_slice($mergedResults, $offsetInTmdbPage, $perPage);
+            $totalPages = max(1, (int) ceil($totalResults / $perPage));
+
+            return [
+                'results' => $results,
+                'meta' => [
+                    'page' => $page,
+                    'perPage' => $perPage,
+                    'totalPages' => $totalPages,
+                    'totalResults' => $totalResults,
+                    'hasNextPage' => $page < $totalPages,
+                    'hasPreviousPage' => $page > 1,
+                ],
+            ];
+        } catch (\Exception $e) {
+            return ['error' => $e->getMessage()];
+        }
+    }
+
     public function search(Request $request): JsonResponse
     {
         $query = $request->string('q')->trim();
@@ -140,29 +155,17 @@ class MoviesController extends Controller
         ]));
 
         $cached = Cache::remember($cacheKey, 3600, function () use ($query, $filters): array {
-            $queryParams = [
-                'query' => $query,
-            ];
-
-            if ($filters['year']) {
-                $queryParams['year'] = $filters['year'];
-            }
-
-            try {
-                $response = Http::withHeaders([
-                    'accept' => 'application/json',
-                    'Authorization' => "Bearer {$this->tmdbApiKey}",
-                ])->get($this->tmdbBaseUrl . '/search/movie', $queryParams);
-
-                if ($response->failed()) {
-                    return ['error' => $response->status()];
-                }
-
-                return $response->json();
-            } catch (\Exception $e) {
-                return ['error' => $e->getMessage()];
-            }
+            return $this->fetchSearchPayload($query->toString(), $filters);
         });
+
+        if (isset($cached['error'])) {
+            Cache::forget($cacheKey);
+            $cached = $this->fetchSearchPayload($query->toString(), $filters);
+
+            if (! isset($cached['error'])) {
+                Cache::put($cacheKey, $cached, 3600);
+            }
+        }
 
         if (isset($cached['error'])) {
             return response()->json(['data' => []]);
@@ -178,29 +181,71 @@ class MoviesController extends Controller
 
     public function show(string $movieId): JsonResponse
     {
-        $cacheKey = "movies:detail:{$movieId}";
+        $cacheKey = "movies:detail:v2:{$movieId}";
         $cached = Cache::remember($cacheKey, 86400, function () use ($movieId): array {
-            try {
-                $response = Http::withHeaders([
-                    'accept' => 'application/json',
-                    'Authorization' => "Bearer {$this->tmdbApiKey}",
-                ])->get($this->tmdbBaseUrl . "/movie/{$movieId}");
-
-                if ($response->failed()) {
-                    return ['error' => $response->status()];
-                }
-
-                return $response->json();
-            } catch (\Exception $e) {
-                return ['error' => $e->getMessage()];
-            }
+            return $this->fetchDetailsPayload($movieId);
         });
+
+        if (isset($cached['error'])) {
+            Cache::forget($cacheKey);
+            $cached = $this->fetchDetailsPayload($movieId);
+
+            if (! isset($cached['error'])) {
+                Cache::put($cacheKey, $cached, 86400);
+            }
+        }
 
         if (isset($cached['error'])) {
             return response()->json(['error' => 'Failed to fetch movie details'], 502);
         }
 
         return response()->json(['data' => $cached]);
+    }
+
+    private function fetchSearchPayload(string $query, array $filters): array
+    {
+        $queryParams = [
+            'query' => $query,
+        ];
+
+        if ($filters['year']) {
+            $queryParams['year'] = $filters['year'];
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'accept' => 'application/json',
+                'Authorization' => "Bearer {$this->tmdbApiKey}",
+            ])->get($this->tmdbBaseUrl . '/search/movie', $queryParams);
+
+            if ($response->failed()) {
+                return ['error' => $response->status()];
+            }
+
+            return $response->json();
+        } catch (\Exception $e) {
+            return ['error' => $e->getMessage()];
+        }
+    }
+
+    private function fetchDetailsPayload(string $movieId): array
+    {
+        try {
+            $response = Http::withHeaders([
+                'accept' => 'application/json',
+                'Authorization' => "Bearer {$this->tmdbApiKey}",
+            ])->get($this->tmdbBaseUrl . "/movie/{$movieId}", [
+                'append_to_response' => 'credits,videos',
+            ]);
+
+            if ($response->failed()) {
+                return ['error' => $response->status()];
+            }
+
+            return $response->json();
+        } catch (\Exception $e) {
+            return ['error' => $e->getMessage()];
+        }
     }
 
     private function extractFilters(Request $request): array

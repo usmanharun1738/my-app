@@ -1,7 +1,7 @@
-import { Link } from "expo-router";
 import MaskedView from "@react-native-masked-view/masked-view";
+import { Link } from "expo-router";
 import { useMemo, useState } from "react";
-import { View, Text, TouchableOpacity, Image } from "react-native";
+import { Image, Text, TouchableOpacity, View } from "react-native";
 
 import { images, POSTER_PLACEHOLDER_URI } from "@/constants/images";
 

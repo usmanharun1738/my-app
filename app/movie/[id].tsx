@@ -1,9 +1,11 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
     Image,
+  Linking,
     ScrollView,
     Text,
     TouchableOpacity,
@@ -59,6 +61,56 @@ const Details = () => {
 
     return getPosterImageUri(movie?.poster_path ?? null);
   }, [hasPosterError, movie?.poster_path]);
+
+  const castNames = useMemo(() => {
+    if (!movie?.credits?.cast?.length) {
+      return "N/A";
+    }
+
+    return movie.credits.cast
+      .slice(0, 8)
+      .map((member) => member.name)
+      .join(" • ");
+  }, [movie?.credits?.cast]);
+
+  const directorNames = useMemo(() => {
+    if (!movie?.credits?.crew?.length) {
+      return "N/A";
+    }
+
+    const names = movie.credits.crew
+      .filter((member) => member.job === "Director")
+      .map((member) => member.name);
+
+    return names.length > 0 ? Array.from(new Set(names)).join(" • ") : "N/A";
+  }, [movie?.credits?.crew]);
+
+  const trailerUrl = useMemo(() => {
+    const videos = movie?.videos?.results ?? [];
+    const youtubeVideos = videos.filter((video) => video.site === "YouTube");
+    const preferred =
+      youtubeVideos.find((video) => video.type === "Trailer" && video.official) ||
+      youtubeVideos.find((video) => video.type === "Trailer") ||
+      youtubeVideos.find((video) => video.type === "Teaser") ||
+      youtubeVideos[0];
+
+    return preferred?.key ? `https://www.youtube.com/watch?v=${preferred.key}` : null;
+  }, [movie?.videos?.results]);
+
+  const handleViewTrailer = async () => {
+    if (!trailerUrl) {
+      Alert.alert("Trailer unavailable", "No trailer found for this movie yet.");
+      return;
+    }
+
+    const supported = await Linking.canOpenURL(trailerUrl);
+    if (!supported) {
+      Alert.alert("Cannot open trailer", "Your device cannot open this link.");
+      return;
+    }
+
+    await Linking.openURL(trailerUrl);
+  };
 
   const handleSave = async () => {
     if (!movie) {
@@ -135,11 +187,10 @@ const Details = () => {
             }`}
             onPress={handleSave}
           >
-            <Image
-              source={icons.save}
-              className="w-6 h-6"
-              tintColor={isSaved ? "#FFFFFF" : "#151312"}
-              resizeMode="stretch"
+            <Ionicons
+              name={isSaved ? "bookmark" : "bookmark-outline"}
+              size={24}
+              color={isSaved ? "#FFFFFF" : "#151312"}
             />
           </TouchableOpacity>
         </View>
@@ -165,7 +216,17 @@ const Details = () => {
             </Text>
           </View>
 
+          <TouchableOpacity
+            className="mt-4 bg-accent rounded-lg py-3 px-4 flex-row items-center justify-center"
+            onPress={handleViewTrailer}
+          >
+            <Ionicons name="play" size={18} color="#FFFFFF" />
+            <Text className="text-white font-semibold ml-2">View Trailer</Text>
+          </TouchableOpacity>
+
           <MovieInfo label="Overview" value={movie?.overview} />
+          <MovieInfo label="Director(s)" value={directorNames} />
+          <MovieInfo label="Cast" value={castNames} />
           <MovieInfo
             label="Genres"
             value={movie?.genres?.map((g) => g.name).join(" • ") || "N/A"}
@@ -194,16 +255,14 @@ const Details = () => {
         </View>
       </ScrollView>
 
-      {/* <TouchableOpacity
-        className="absolute bottom-5 left-0 right-0 mx-5 bg-accent rounded-lg py-3.5 flex flex-row items-center justify-center z-50"
+      <TouchableOpacity
+        className="absolute top-12 left-5 rounded-full size-11 items-center justify-center border border-white/20 z-50"
+        style={{ backgroundColor: "rgba(15, 13, 35, 0.8)" }}
         onPress={router.back}
       >
-        <Image
-          source={icons.arrow}
-          className="size-5 mr-1 mt-0.5 rotate-180"
-          tintColor="#fff"
-        />
-      </TouchableOpacity> */}
+        <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
+      </TouchableOpacity>
+
     </View>
   );
 };
