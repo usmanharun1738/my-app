@@ -95,6 +95,9 @@ interface MovieDetails {
       official?: boolean;
     }>;
   };
+  similar?: {
+    results?: Movie[];
+  };
 }
 
 interface TrendingCardProps {

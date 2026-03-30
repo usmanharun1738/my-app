@@ -181,7 +181,7 @@ class MoviesController extends Controller
 
     public function show(string $movieId): JsonResponse
     {
-        $cacheKey = "movies:detail:v2:{$movieId}";
+        $cacheKey = "movies:detail:v3:{$movieId}";
         $cached = Cache::remember($cacheKey, 86400, function () use ($movieId): array {
             return $this->fetchDetailsPayload($movieId);
         });
@@ -235,7 +235,7 @@ class MoviesController extends Controller
                 'accept' => 'application/json',
                 'Authorization' => "Bearer {$this->tmdbApiKey}",
             ])->get($this->tmdbBaseUrl . "/movie/{$movieId}", [
-                'append_to_response' => 'credits,videos',
+                'append_to_response' => 'credits,videos,similar',
             ]);
 
             if ($response->failed()) {
