@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import {
     ActivityIndicator,
     FlatList,
@@ -10,7 +10,7 @@ import {
     View,
 } from "react-native";
 
-import { fetchMovies } from "@/services/api";
+import { fetchLatestMoviesPage } from "@/services/api";
 import { getTrendingMovies } from "@/services/backend";
 import useFetch from "@/services/usefetch";
 
@@ -21,11 +21,17 @@ import MovieCard from "@/components/MovieCard";
 import SearchBar from "@/components/SearchBar";
 import TrendingCard from "@/components/TrendingCard";
 
+const LATEST_PAGE_SIZE = 12;
+
 const Index = () => {
   const router = useRouter();
+  const [latestPage, setLatestPage] = useState(1);
 
   const fetchTrending = useCallback(() => getTrendingMovies(), []);
-  const fetchLatest = useCallback(() => fetchMovies({ query: "" }), []);
+  const fetchLatest = useCallback(
+    () => fetchLatestMoviesPage({ page: latestPage, perPage: LATEST_PAGE_SIZE }),
+    [latestPage]
+  );
 
   const {
     data: trendingMovies,
@@ -35,14 +41,17 @@ const Index = () => {
   } = useFetch(fetchTrending);
 
   const {
-    data: movies,
+    data: latestMoviesPayload,
     loading: moviesLoading,
     error: moviesError,
     refetch: refetchMovies,
   } = useFetch(fetchLatest);
 
   const trendingList = Array.isArray(trendingMovies) ? trendingMovies : [];
-  const latestMovies = Array.isArray(movies) ? movies : [];
+  const latestMovies = Array.isArray(latestMoviesPayload?.data)
+    ? latestMoviesPayload.data
+    : [];
+  const latestMeta = latestMoviesPayload?.meta;
 
   return (
     <View className="flex-1 bg-primary">
@@ -123,13 +132,38 @@ const Index = () => {
                 numColumns={3}
                 columnWrapperStyle={{
                   justifyContent: "flex-start",
-                  gap: 20,
-                  paddingRight: 5,
+                  gap: 10,
                   marginBottom: 10,
                 }}
                 className="mt-2 pb-32"
                 scrollEnabled={false}
               />
+
+              <View className="flex-row items-center justify-between mt-2 mb-10">
+                <TouchableOpacity
+                  className={`px-4 py-2 rounded-full ${
+                    latestPage <= 1 || moviesLoading ? "bg-dark-200" : "bg-accent"
+                  }`}
+                  disabled={latestPage <= 1 || moviesLoading}
+                  onPress={() => setLatestPage((prev) => Math.max(1, prev - 1))}
+                >
+                  <Text className="text-white font-semibold">Previous</Text>
+                </TouchableOpacity>
+
+                <Text className="text-light-200 font-medium">
+                  Page {latestMeta?.page ?? latestPage} of {latestMeta?.totalPages ?? 1}
+                </Text>
+
+                <TouchableOpacity
+                  className={`px-4 py-2 rounded-full ${
+                    latestMeta?.hasNextPage && !moviesLoading ? "bg-accent" : "bg-dark-200"
+                  }`}
+                  disabled={!latestMeta?.hasNextPage || moviesLoading}
+                  onPress={() => setLatestPage((prev) => prev + 1)}
+                >
+                  <Text className="text-white font-semibold">Next</Text>
+                </TouchableOpacity>
+              </View>
             </>
           </View>
         )}

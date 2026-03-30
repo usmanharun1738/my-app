@@ -13,6 +13,7 @@ class MoviesController extends Controller
 {
     private string $tmdbBaseUrl;
     private string $tmdbApiKey;
+    private int $tmdbPageSize = 20;
 
     public function __construct()
     {
@@ -27,9 +28,16 @@ class MoviesController extends Controller
     public function discover(Request $request): JsonResponse
     {
         $filters = $this->extractFilters($request);
-        $cacheKey = 'movies:discover:' . md5(json_encode($filters));
+        $page = max(1, (int) $request->integer('page', 1));
+        $perPage = max(1, min((int) $request->integer('perPage', 12), 20));
 
-        $cached = Cache::remember($cacheKey, 3600, function () use ($filters): array {
+        $cacheKey = 'movies:discover:' . md5(json_encode([
+            ...$filters,
+            'page' => $page,
+            'perPage' => $perPage,
+        ]));
+
+        $cached = Cache::remember($cacheKey, 3600, function () use ($filters, $page, $perPage): array {
             $queryParams = [
                 'sort_by' => $this->mapDiscoverSort($filters['sortBy']),
             ];
@@ -50,17 +58,51 @@ class MoviesController extends Controller
                 $queryParams['primary_release_date.gte'] = $filters['releaseDate'];
             }
 
-            try {
-                $response = Http::withHeaders([
-                    'accept' => 'application/json',
-                    'Authorization' => "Bearer {$this->tmdbApiKey}",
-                ])->get($this->tmdbBaseUrl . '/discover/movie', $queryParams);
+            $offset = ($page - 1) * $perPage;
+            $tmdbPage = (int) floor($offset / $this->tmdbPageSize) + 1;
+            $offsetInTmdbPage = $offset % $this->tmdbPageSize;
+            $pagesNeeded = (int) ceil(($offsetInTmdbPage + $perPage) / $this->tmdbPageSize);
 
-                if ($response->failed()) {
-                    return ['error' => $response->status()];
+            $mergedResults = [];
+            $totalResults = 0;
+
+            try {
+                for ($index = 0; $index < $pagesNeeded; $index++) {
+                    $response = Http::withHeaders([
+                        'accept' => 'application/json',
+                        'Authorization' => "Bearer {$this->tmdbApiKey}",
+                    ])->get($this->tmdbBaseUrl . '/discover/movie', [
+                        ...$queryParams,
+                        'page' => $tmdbPage + $index,
+                    ]);
+
+                    if ($response->failed()) {
+                        return ['error' => $response->status()];
+                    }
+
+                    $json = $response->json();
+
+                    if ($index === 0) {
+                        $totalResults = (int) ($json['total_results'] ?? 0);
+                    }
+
+                    $mergedResults = [...$mergedResults, ...($json['results'] ?? [])];
                 }
 
-                return $response->json();
+                $results = array_slice($mergedResults, $offsetInTmdbPage, $perPage);
+                $totalPages = max(1, (int) ceil($totalResults / $perPage));
+
+                return [
+                    'results' => $results,
+                    'meta' => [
+                        'page' => $page,
+                        'perPage' => $perPage,
+                        'totalPages' => $totalPages,
+                        'totalResults' => $totalResults,
+                        'hasNextPage' => $page < $totalPages,
+                        'hasPreviousPage' => $page > 1,
+                    ],
+                ];
             } catch (\Exception $e) {
                 return ['error' => $e->getMessage()];
             }
@@ -72,6 +114,14 @@ class MoviesController extends Controller
 
         return response()->json([
             'data' => $cached['results'] ?? [],
+            'meta' => $cached['meta'] ?? [
+                'page' => $page,
+                'perPage' => $perPage,
+                'totalPages' => 1,
+                'totalResults' => 0,
+                'hasNextPage' => false,
+                'hasPreviousPage' => false,
+            ],
         ]);
     }
 

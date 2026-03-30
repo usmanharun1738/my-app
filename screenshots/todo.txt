@@ -4,17 +4,21 @@ Add request cancellation for fast typing and screen changes.
 Why: prevents stale responses and unnecessary API load.
 Where: api.ts, backend.ts, app/(tabs)/search.tsx/search.tsx)
 How: use AbortController and cancel in-flight fetch before sending new one.
+
 Add rate-limit aware retry/backoff for 429.
 Why: avoids noisy repeated failures and improves UX.
 Where: api.ts, backend.ts
+
 How: on 429, read Retry-After if present and retry once with short backoff.
 Reduce Home re-fetch aggressiveness.
 Why: lowers duplicate calls and avoids hitting throttle.
 Where: app/(tabs)/index.tsx/index.tsx)
+
 How: fetch on mount plus manual pull-to-refresh, not every focus event.
 Prevent placeholder poster pollution.
 Why: better visual quality and trust.
 Where: app/(tabs)/search.tsx/search.tsx), MovieCard.tsx
+
 How: filter items with missing poster_path or render a designed fallback card.
 Normalize API response shape consistently.
 Why: simplifies frontend null checks.
