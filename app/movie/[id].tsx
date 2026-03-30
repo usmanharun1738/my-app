@@ -4,10 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
-  FlatList,
+    FlatList,
     Image,
     Linking,
-  Modal,
+    Modal,
     ScrollView,
     Text,
     TouchableOpacity,
