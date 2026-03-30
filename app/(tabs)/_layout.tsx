@@ -1,27 +1,35 @@
+import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import { ImageBackground, Image, Text, View } from "react-native";
+import { useEffect, useRef } from "react";
+import { Animated, View } from "react-native";
 
-import { icons } from "@/constants/icons";
-import { images } from "@/constants/images";
+type TabIconProps = {
+  focused: boolean;
+  activeName: keyof typeof Ionicons.glyphMap;
+  inactiveName: keyof typeof Ionicons.glyphMap;
+};
 
-function TabIcon({ focused, icon, title }: any) {
-  if (focused) {
-    return (
-      <ImageBackground
-        source={images.highlight}
-        className="flex flex-row w-full flex-1 min-w-[112px] min-h-14 mt-4 justify-center items-center rounded-full overflow-hidden"
-      >
-        <Image source={icon} tintColor="#151312" className="size-5" />
-        <Text className="text-secondary text-base font-semibold ml-2">
-          {title}
-        </Text>
-      </ImageBackground>
-    );
-  }
+function TabIcon({ focused, activeName, inactiveName }: TabIconProps) {
+  const scale = useRef(new Animated.Value(focused ? 1.12 : 1)).current;
+
+  useEffect(() => {
+    Animated.spring(scale, {
+      toValue: focused ? 1.12 : 1,
+      speed: 20,
+      bounciness: 8,
+      useNativeDriver: true,
+    }).start();
+  }, [focused, scale]);
 
   return (
-    <View className="size-full justify-center items-center mt-4 rounded-full">
-      <Image source={icon} tintColor="#A8B5DB" className="size-5" />
+    <View className="flex-1 items-center justify-center">
+      <Animated.View style={{ transform: [{ scale }] }}>
+        <Ionicons
+          name={focused ? activeName : inactiveName}
+          size={24}
+          color={focused ? "#A78BFA" : "#A8B5DB"}
+        />
+      </Animated.View>
     </View>
   );
 }
@@ -32,31 +40,29 @@ export default function TabsLayout() {
       screenOptions={{
         tabBarShowLabel: false,
         tabBarItemStyle: {
-          width: "100%",
-          height: "100%",
+          width: "auto",
+          height: 64,
           justifyContent: "center",
           alignItems: "center",
         },
         tabBarStyle: {
           backgroundColor: "#0F0D23",
-          borderRadius: 50,
-          marginHorizontal: 20,
-          marginBottom: 36,
-          height: 52,
-          position: "absolute",
-          overflow: "hidden",
-          borderWidth: 1,
-          borderColor: "#0F0D23",
+          borderTopWidth: 1,
+          borderTopColor: "#1C1A38",
+          height: 64,
+          elevation: 0,
         },
+        tabBarActiveTintColor: "#A78BFA",
+        tabBarInactiveTintColor: "#A8B5DB",
+        headerShown: false,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "index",
-          headerShown: false,
+          title: "Home",
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.home} title="Home" />
+            <TabIcon focused={focused} activeName="home-sharp" inactiveName="home-sharp" />
           ),
         }}
       />
@@ -65,9 +71,8 @@ export default function TabsLayout() {
         name="search"
         options={{
           title: "Search",
-          headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.search} title="Search" />
+            <TabIcon focused={focused} activeName="search" inactiveName="search-outline" />
           ),
         }}
       />
@@ -76,9 +81,8 @@ export default function TabsLayout() {
         name="save"
         options={{
           title: "Save",
-          headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.save} title="Save" />
+            <TabIcon focused={focused} activeName="bookmark" inactiveName="bookmark-outline" />
           ),
         }}
       />
@@ -87,9 +91,8 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: "Profile",
-          headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.person} title="Profile" />
+            <TabIcon focused={focused} activeName="person" inactiveName="person-outline" />
           ),
         }}
       />

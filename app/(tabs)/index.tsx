@@ -1,4 +1,5 @@
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useState } from "react";
 import {
     ActivityIndicator,
@@ -133,21 +134,21 @@ const Index = () => {
                 columnWrapperStyle={{
                   justifyContent: "flex-start",
                   gap: 10,
-                  marginBottom: 10,
+                  marginBottom: 8,
                 }}
-                className="mt-2 pb-32"
+                className="mt-2 pb-2"
                 scrollEnabled={false}
               />
 
-              <View className="flex-row items-center justify-between mt-2 mb-10">
+              <View className="flex-row items-center justify-between mt-1 mb-5">
                 <TouchableOpacity
-                  className={`px-4 py-2 rounded-full ${
+                  className={`h-11 w-11 rounded-full items-center justify-center ${
                     latestPage <= 1 || moviesLoading ? "bg-dark-200" : "bg-accent"
                   }`}
                   disabled={latestPage <= 1 || moviesLoading}
                   onPress={() => setLatestPage((prev) => Math.max(1, prev - 1))}
                 >
-                  <Text className="text-white font-semibold">Previous</Text>
+                  <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
                 </TouchableOpacity>
 
                 <Text className="text-light-200 font-medium">
@@ -155,13 +156,13 @@ const Index = () => {
                 </Text>
 
                 <TouchableOpacity
-                  className={`px-4 py-2 rounded-full ${
+                  className={`h-11 w-11 rounded-full items-center justify-center ${
                     latestMeta?.hasNextPage && !moviesLoading ? "bg-accent" : "bg-dark-200"
                   }`}
                   disabled={!latestMeta?.hasNextPage || moviesLoading}
                   onPress={() => setLatestPage((prev) => prev + 1)}
                 >
-                  <Text className="text-white font-semibold">Next</Text>
+                  <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
                 </TouchableOpacity>
               </View>
             </>

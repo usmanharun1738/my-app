@@ -1,5 +1,13 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Image, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 import { icons } from "@/constants/icons";
 import { images } from "@/constants/images";
@@ -11,10 +19,13 @@ import MovieDisplayCard from "@/components/MovieCard";
 import MovieFilters from "@/components/MovieFilters";
 import SearchBar from "@/components/SearchBar";
 
+const SEARCH_PAGE_SIZE = 12;
+
 const Search = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [movies, setMovies] = useState<Movie[]>([]);
+  const [searchPage, setSearchPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [filters, setFilters] = useState<{
@@ -81,6 +92,7 @@ const Search = () => {
         }
 
         setMovies(results);
+        setSearchPage(1);
       } catch (fetchError) {
         if (cancelled) {
           return;
@@ -122,6 +134,7 @@ const Search = () => {
       });
 
       setMovies(results);
+      setSearchPage(1);
 
       if (results.length > 0) {
         await updateSearchCount(normalizedQuery, results[0]);
@@ -148,6 +161,7 @@ const Search = () => {
       });
 
       setMovies(results);
+      setSearchPage(1);
     } catch (fetchError) {
       setError(
         fetchError instanceof Error
@@ -159,6 +173,11 @@ const Search = () => {
     }
   };
 
+  const totalPages = Math.max(1, Math.ceil(movies.length / SEARCH_PAGE_SIZE));
+  const currentPage = Math.min(searchPage, totalPages);
+  const pageStartIndex = (currentPage - 1) * SEARCH_PAGE_SIZE;
+  const paginatedMovies = movies.slice(pageStartIndex, pageStartIndex + SEARCH_PAGE_SIZE);
+
   return (
     <View className="flex-1 bg-primary">
       <Image
@@ -169,16 +188,16 @@ const Search = () => {
 
       <FlatList
         className="px-5"
-        data={movies}
+        data={paginatedMovies}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => <MovieDisplayCard {...item} />}
         numColumns={3}
         columnWrapperStyle={{
           justifyContent: "flex-start",
-          gap: 16,
-          marginVertical: 16,
+          gap: 10,
+          marginVertical: 10,
         }}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 90 }}
         ListHeaderComponent={
           <>
             <View className="w-full flex-row justify-center mt-20 items-center">
@@ -233,6 +252,35 @@ const Search = () => {
                     : "No movies found"
                   : "Start typing to search for movies"}
               </Text>
+            </View>
+          ) : null
+        }
+        ListFooterComponent={
+          !loading && !error && movies.length > 0 ? (
+            <View className="flex-row items-center justify-between mt-1 mb-5">
+              <TouchableOpacity
+                className={`h-11 w-11 rounded-full items-center justify-center ${
+                  currentPage > 1 ? "bg-accent" : "bg-dark-200"
+                }`}
+                disabled={currentPage <= 1}
+                onPress={() => setSearchPage((prev) => Math.max(1, prev - 1))}
+              >
+                <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+
+              <Text className="text-light-200 font-medium">
+                Page {currentPage} of {totalPages}
+              </Text>
+
+              <TouchableOpacity
+                className={`h-11 w-11 rounded-full items-center justify-center ${
+                  currentPage < totalPages ? "bg-accent" : "bg-dark-200"
+                }`}
+                disabled={currentPage >= totalPages}
+                onPress={() => setSearchPage((prev) => Math.min(totalPages, prev + 1))}
+              >
+                <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
             </View>
           ) : null
         }
